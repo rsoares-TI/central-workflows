@@ -1,0 +1,41 @@
+name: Release Workflow
+
+on:
+  workflow_call:
+    inputs:
+      service-name:  
+        type: string
+        required: true
+      harbor-project:    
+        type: string
+        required: true
+      web-app-name:    
+        type: string
+        required: true
+      commit-ref:
+        type: string
+        required: true
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+
+jobs:
+  # Release Stage
+  release:
+    name: Release Stage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print Commit SHA
+        run: echo "Workflow running on commit ${{ inputs.commit-ref }}" 
+
+      - name: Azure Login
+        uses: Azure/login@v2.3.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}    
+      
+      # - name: 'Deploy to Azure Web App for Container'
+      #   uses: azure/webapps-deploy@v2
+      #   with: 
+      #     app-name: ${{ inputs.web-app-name }} 
+      #     images: harbor.twoimpulse.io/${{ inputs.harbor-project }}/${{ inputs.service-name }}:${{ inputs.commit-ref }}

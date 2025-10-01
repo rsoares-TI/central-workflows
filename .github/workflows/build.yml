@@ -1,0 +1,61 @@
+# .github/workflows/build.yml
+name: Build Workflow
+
+on:
+  workflow_call:
+    inputs:
+      service-name:     #frontend
+        type: string
+        required: true
+      harbor-project:     #frontend
+        type: string
+        required: true
+      commit-ref:
+        type: string
+        required: true
+    secrets:
+      SA_1PASSWORD:
+        required: true
+
+jobs:
+  # Build Stage
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print Commit SHA
+        run: echo "Workflow running on commit ${{ inputs.commit-ref }}"
+
+      - name: Checkout
+        uses: actions/checkout@v5 
+        with:
+          ref: ${{ inputs.commit-ref }}
+          fetch-depth: 0
+      
+      - name: Load secret
+        id: load_secrets
+        uses: 1password/load-secrets-action@v3
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.SA_1PASSWORD }}
+          HARBOR_USER: "op://Langbox/suwoxs654lznzpo7rkfjq7xj3m/username"
+          HARBOR_PASS: "op://Langbox/suwoxs654lznzpo7rkfjq7xj3m/password"
+      
+      - name: Docker Login
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: harbor.twoimpulse.io
+          username: ${{ env.HARBOR_USER }}
+          password: ${{ env.HARBOR_PASS }}
+      
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true         
+          tags: harbor.twoimpulse.io/${{ inputs.harbor-project }}/${{ inputs.service-name }}:${{ inputs.commit-ref }}
+      
+      

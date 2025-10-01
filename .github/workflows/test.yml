@@ -1,0 +1,83 @@
+# .github/workflows/test.yml
+name: Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      node-version:     #18.20.8
+        type: string
+        required: true
+      service-name:     #frontend
+        type: string
+        required: true
+      harbor-project:     #frontend
+        type: string
+        required: true
+      commit-ref:
+        type: string
+        required: true
+      unit-tests:
+        type: boolean
+        required: true
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+# ${{ inputs.node-version }}
+
+jobs:
+  # Test Stage
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print Commit SHA
+        run: echo "Workflow running on commit ${{ inputs.commit-ref }}"
+
+      - name: Checkout
+        uses: actions/checkout@v5 
+        with:
+          ref: ${{ inputs.commit-ref }}
+          fetch-depth: 0
+      
+      - name: Setup Node.Js environment
+        if: ${{ github.event.inputs.unit-tests == 'true' }}
+        uses: actions/setup-node@v5.0.0
+        with: 
+          node-version: 18.20.8
+      
+      - name: Install dependencies
+        if: ${{ github.event.inputs.unit-tests == 'true' }}
+        run: npm install
+      
+      - name: Run unit tests
+        if: ${{ github.event.inputs.unit-tests == 'true' }}
+        run: npm run test:ci
+      
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false         
+          tags: harbor.twoimpulse.io/${{ inputs.harbor-project }}/${{ inputs.service-name }}:${{ inputs.commit-ref }}
+      
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: harbor.twoimpulse.io/${{ inputs.harbor-project }}/${{ inputs.service-name }}:${{ inputs.commit-ref }}
+          format: 'sarif'
+          exit-code: '0'
+          scanners: 'vuln,misconfig,license'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-results.sarif'
+      
+      
