@@ -15,19 +15,27 @@ on:
       commit-ref:
         type: string
         required: true
+      environment:     
+        required: true
+        type: string
     secrets:
       AZURE_CREDENTIALS:
         required: true
+
 
 jobs:
   # Release Stage
   release:
     name: Release Stage
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
 
     steps:
-      - name: Print Commit SHA
-        run: echo "Workflow running on commit ${{ inputs.commit-ref }}" 
+      - name: Workflow run Information
+        run: | 
+          echo "Workflow running on environment ${{ inputs.environment }}"
+          echo "Workflow running on commit ${{ inputs.commit-ref }}"
+          echo TEST variable ${{ env.TEST }}
 
       - name: Azure Login
         uses: Azure/login@v2.3.0

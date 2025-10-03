@@ -4,15 +4,18 @@ name: Build Workflow
 on:
   workflow_call:
     inputs:
-      service-name:     #frontend
+      service-name:     
         type: string
         required: true
-      harbor-project:     #frontend
+      harbor-project:     
         type: string
         required: true
       commit-ref:
         type: string
         required: true
+      environment:     
+        required: true
+        type: string
     secrets:
       SA_1PASSWORD:
         required: true
@@ -22,10 +25,14 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
 
     steps:
-      - name: Print Commit SHA
-        run: echo "Workflow running on commit ${{ inputs.commit-ref }}"
+      - name: Workflow run Information
+        run: | 
+          echo "Workflow running on environment ${{ inputs.environment }}"
+          echo "Workflow running on commit ${{ inputs.commit-ref }}"
+          echo TEST variable ${{ env.TEST }}
 
       - name: Checkout
         uses: actions/checkout@v5 
